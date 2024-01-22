@@ -3,7 +3,7 @@ package provider
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -49,7 +49,7 @@ func (c *Client) GetToken() (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(io.Reader(resp.Body))
 	var TokenResult TokenResponse
 	_ = json.Unmarshal(body, &TokenResult)
 
@@ -72,7 +72,7 @@ func (c *Client) GetUserId(username string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.Reader(resp.Body))
 	if err != nil {
 		return "", err
 	}
