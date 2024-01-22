@@ -31,7 +31,6 @@ type Client struct {
 	mutex        sync.Mutex
 }
 
-// pass the httpClient as parameter
 func NewClient(clientId string, clientSecret string, baseURL string, realm string, httpClient *http.Client) *Client {
 	return &Client{
 		ClientId:     clientId,
