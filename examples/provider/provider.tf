@@ -1,11 +1,12 @@
 terraform {
   required_providers {
-    keycloak-user-cache = {
-      source = "Filirom1/keycloak-user-cache"
+    kuc = {
+      source = "Filirom1/kuc"
+      version = "0.0.1"
     }
   }
 }
 
-provider "keycloak-user-cache" {
-  # example configuration here
+provider "kuc" {
+  # Configuration options
 }

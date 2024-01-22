@@ -29,7 +29,7 @@ type KeycloakUserCacheProviderModel struct {
 }
 
 func (p *KeycloakUserCacheProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "keycloak_user_cache"
+	resp.TypeName = "kuc"
 	resp.Version = p.version
 }
 

@@ -1,4 +1,4 @@
-module github.com/Filirom1/terraform-provider-keycloak-user-cache
+module github.com/Filirom1/terraform-provider-kuc
 
 go 1.20
 

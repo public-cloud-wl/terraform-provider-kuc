@@ -8,7 +8,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/Filirom1/terraform-provider-keycloak-user-cache/internal/provider"
+	"github.com/Filirom1/terraform-provider-kuc/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
