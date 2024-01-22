@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scaffolding-framework
+module github.com/Filirom1/terraform-provider-keycloak-user-cache
 
 go 1.20
 

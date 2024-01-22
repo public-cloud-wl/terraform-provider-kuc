@@ -1,84 +1,157 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
 	"context"
-	"net/http"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// Ensure ScaffoldingProvider satisfies various provider interfaces.
-var _ provider.Provider = &ScaffoldingProvider{}
+// Ensure KeycloakUserCacheProvider satisfies various provider interfaces.
+var _ provider.Provider = &KeycloakUserCacheProvider{}
 
-// ScaffoldingProvider defines the provider implementation.
-type ScaffoldingProvider struct {
-	// version is set to the provider version on release, "dev" when the
-	// provider is built and ran locally, and "test" when running acceptance
-	// testing.
+// KeycloakUserCacheProvider defines the provider implementation.
+type KeycloakUserCacheProvider struct {
 	version string
 }
 
-// ScaffoldingProviderModel describes the provider data model.
-type ScaffoldingProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
+// KeycloakUserCacheProviderModel describes the provider schema.
+type KeycloakUserCacheProviderModel struct {
+	ClientID     types.String `tfsdk:"client_id"`
+	ClientSecret types.String `tfsdk:"client_secret"`
+	Realm        types.String `tfsdk:"realm"`
+	URL          types.String `tfsdk:"url"`
 }
 
-func (p *ScaffoldingProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scaffolding"
+func (p *KeycloakUserCacheProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "keycloak_user_cache"
 	resp.Version = p.version
 }
 
-func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *KeycloakUserCacheProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
-				Optional:            true,
+			"client_id": schema.StringAttribute{
+				Optional: true,
+			},
+			"client_secret": schema.StringAttribute{
+				Optional:  true,
+				Sensitive: true,
+			},
+			"realm": schema.StringAttribute{
+				Optional: true,
+			},
+			"url": schema.StringAttribute{
+				Optional: true,
 			},
 		},
 	}
 }
 
-func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data ScaffoldingProviderModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
+func (p *KeycloakUserCacheProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var config KeycloakUserCacheProviderModel
+	diags := req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	clientId := os.Getenv("KEYCLOAK_CLIENT_ID")
+	clientSecret := os.Getenv("KEYCLOAK_CLIENT_SECRET")
+	url := os.Getenv("KEYCLOAK_URL")
+	realm := os.Getenv("KEYCLOAK_REALM")
 
-	// Example client configuration for data sources and resources
-	client := http.DefaultClient
+	if config.ClientID.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("client_id"),
+			"Unknown client_id value",
+			"Unknown client_id value",
+		)
+	}
+
+	if config.ClientSecret.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("client_secret"),
+			"Unknown client_secret value",
+			"Unknown client_secret value",
+		)
+	}
+
+	if config.URL.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("url"),
+			"Unknown url value",
+			"Unknown url value",
+		)
+	}
+
+	if config.Realm.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("realm"),
+			"Unknown realm value",
+			"Unknown realm value",
+		)
+	}
+
+	if !config.ClientID.IsNull() {
+		clientId = config.ClientID.ValueString()
+	}
+
+	if !config.ClientSecret.IsNull() {
+		clientSecret = config.ClientSecret.ValueString()
+	}
+
+	if !config.URL.IsNull() {
+		url = config.URL.ValueString()
+	}
+
+	if !config.Realm.IsNull() {
+		realm = config.Realm.ValueString()
+	}
+
+	if clientId == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("client_id"), "client_id is required", "client_id is required")
+		return
+	}
+
+	if clientSecret == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("client_secret"), "client_secret is required", "client_secret is required")
+		return
+	}
+
+	if url == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("url"), "url is required", "url is required")
+		return
+	}
+
+	if realm == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("realm"), "realm is required", "realm is required")
+	}
+
+	client := NewClient(config.ClientID.ValueString(), config.ClientSecret.ValueString(), config.URL.ValueString(), config.Realm.ValueString())
+
 	resp.DataSourceData = client
 	resp.ResourceData = client
 }
 
-func (p *ScaffoldingProvider) Resources(ctx context.Context) []func() resource.Resource {
-	return []func() resource.Resource{
-		NewExampleResource,
-	}
+func (p *KeycloakUserCacheProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+	return nil
 }
 
-func (p *ScaffoldingProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		NewExampleDataSource,
+func (p *KeycloakUserCacheProvider) Resources(ctx context.Context) []func() resource.Resource {
+	return []func() resource.Resource{
+		NewUserResource,
 	}
 }
 
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &ScaffoldingProvider{
+		return &KeycloakUserCacheProvider{
 			version: version,
 		}
 	}
