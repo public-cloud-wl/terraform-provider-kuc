@@ -75,7 +75,6 @@ func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequ
 	r.client = client
 }
 
-// dd
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data UserResourceModel
 
