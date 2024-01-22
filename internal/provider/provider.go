@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -10,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure KeycloakUserCacheProvider satisfies various provider interfaces.
@@ -133,7 +136,17 @@ func (p *KeycloakUserCacheProvider) Configure(ctx context.Context, req provider.
 		resp.Diagnostics.AddAttributeError(path.Root("realm"), "realm is required", "realm is required")
 	}
 
-	client := NewClient(config.ClientID.ValueString(), config.ClientSecret.ValueString(), config.URL.ValueString(), config.Realm.ValueString())
+	httpClient := http.Client{}
+	tflog.Info(ctx, "Creating kuc client", map[string]any{"clientId": clientId, "clientSecret": clientSecret, "url": url, "realm": realm})
+	client := NewClient(clientId, clientSecret, url, realm, &httpClient)
+	_, err := client.GetToken(ctx)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to get token",
+			fmt.Sprintf("Failed to get token: %s", err),
+		)
+		return
+	}
 
 	resp.DataSourceData = client
 	resp.ResourceData = client

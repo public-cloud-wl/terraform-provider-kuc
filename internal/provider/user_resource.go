@@ -87,7 +87,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	userId, err := r.client.GetUserId(data.Username.ValueString())
+	userId, err := r.client.GetUserId(ctx, data.Username.ValueString())
 	// If the call fails, add a diagnostic and return.
 	if err != nil {
 		resp.Diagnostics.AddError(
