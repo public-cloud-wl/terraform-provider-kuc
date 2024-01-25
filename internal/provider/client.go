@@ -118,3 +118,37 @@ func (c *Client) GetUserId(ctx context.Context, username string) (string, error)
 
 	return "", fmt.Errorf("user not found")
 }
+
+func (c *Client) GetUser(ctx context.Context, id string) (User, error) {
+	token, err := c.GetToken(ctx)
+	if err != nil {
+		return User{}, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", c.BaseURL+"/auth/admin/realms/"+c.Realm+"/users/"+id, nil)
+	if err != nil {
+		return User{}, err
+	}
+
+	bearer := "Bearer " + token
+	req.Header.Add("Authorization", bearer)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return User{}, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(io.Reader(resp.Body))
+	if err != nil {
+		return User{}, err
+	}
+
+	var user User
+	err = json.Unmarshal(body, &user)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
