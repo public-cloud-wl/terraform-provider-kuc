@@ -139,9 +139,19 @@ func (c *Client) GetUser(ctx context.Context, id string) (User, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		// Handle the case when the user is not found
+		return User{}, fmt.Errorf("user with ID %s not found", id)
+	}
+
 	body, err := io.ReadAll(io.Reader(resp.Body))
 	if err != nil {
 		return User{}, err
+	}
+
+	if resp.StatusCode >= 400 {
+		// Handle other HTTP errors
+		return User{}, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body))
 	}
 
 	var user User

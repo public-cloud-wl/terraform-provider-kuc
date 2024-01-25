@@ -113,14 +113,11 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	user, err := r.client.GetUser(ctx, data.ID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"User not found",
-			fmt.Sprintf("User %s (%s) not found : %s", data.Username, data.ID, err),
-		)
 		// Remove from the state this resource
 		resp.State.RemoveResource(ctx)
 		return
 	}
+
 	data.ID = types.StringValue(user.ID)
 	data.Username = types.StringValue(user.Username)
 

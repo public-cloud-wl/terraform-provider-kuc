@@ -136,9 +136,11 @@ func (p *KeycloakUserCacheProvider) Configure(ctx context.Context, req provider.
 		resp.Diagnostics.AddAttributeError(path.Root("realm"), "realm is required", "realm is required")
 	}
 
-	httpClient := http.Client{}
+	httpClient := &http.Client{
+		Transport: NewLoggingTransport(http.DefaultTransport),
+	}
 	tflog.Info(ctx, "Creating kuc client", map[string]any{"clientId": clientId, "clientSecret": clientSecret, "url": url, "realm": realm})
-	client := NewClient(clientId, clientSecret, url, realm, &httpClient)
+	client := NewClient(clientId, clientSecret, url, realm, httpClient)
 	_, err := client.GetToken(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
