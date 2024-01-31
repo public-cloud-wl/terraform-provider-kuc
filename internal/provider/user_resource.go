@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -77,31 +78,40 @@ func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequ
 
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data UserResourceModel
-
-	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	userId, err := r.client.GetUserId(ctx, data.Username.ValueString())
-	// If the call fails, add a diagnostic and return.
+	userOperation := func() error {
+		userId, err := r.client.GetUserId(ctx, data.Username.ValueString())
+		if err != nil {
+			// If the error occurs, return it to the retry function
+			return err
+		}
+
+		data.ID = types.StringValue(userId)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
+		// No error, operation successful
+		return nil
+	}
+
+	// Create a new exponential backoff policy
+	backoffPolicy := backoff.NewExponentialBackOff()
+
+	// Using the retry package to retry the operation in case of an error
+	err := backoff.Retry(userOperation, backoffPolicy)
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"User not found",
-			fmt.Sprintf("User %s not found.", data.Username),
+			fmt.Sprintf("User %s not found after retries due to: %v", data.Username.ValueString(), err),
 		)
-
 		return
 	}
-	data.ID = types.StringValue(userId)
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
-
 func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data UserResourceModel
 
