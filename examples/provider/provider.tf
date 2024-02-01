@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     kuc = {
-      source = "Filirom1/kuc"
+      source = "public-cloud-wl/kuc"
       version = "0.0.1"
     }
   }
