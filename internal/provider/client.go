@@ -157,7 +157,7 @@ func (c *Client) GetUser(ctx context.Context, id string) (User, error) {
 	var user User
 	err = json.Unmarshal(body, &user)
 	if err != nil {
-		return User{}, err
+		return User{}, fmt.Errorf("Failed to unmarshal the following body: %s, error: %w", string(body), err)
 	}
 
 	return user, nil
