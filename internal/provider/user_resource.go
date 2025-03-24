@@ -121,15 +121,15 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	user, err := r.client.GetUser(ctx, data.ID.ValueString())
-	if err != nil {
-		// Remove from the state this resource
-		resp.State.RemoveResource(ctx)
-		return
-	}
+	//user, err := r.client.GetUser(ctx, data.ID.ValueString())
+	//if err != nil {
+	//	// Remove from the state this resource
+	//	resp.State.RemoveResource(ctx)
+	//	return
+	//}
 
-	data.ID = types.StringValue(user.ID)
-	data.Username = types.StringValue(user.Username)
+	//data.ID = types.StringValue(user.ID)
+	//data.Username = types.StringValue(user.Username)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
