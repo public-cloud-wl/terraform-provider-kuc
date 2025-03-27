@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 )
 
 type TokenResponse struct {
@@ -32,6 +33,18 @@ type Client struct {
 }
 
 func NewClient(clientId string, clientSecret string, baseURL string, realm string, httpClient *http.Client) *Client {
+	// If no custom HTTP client was provided, create one configured for connection reuse
+	if httpClient == nil {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		// Set reasonable timeout to prevent connection leaks
+		transport.IdleConnTimeout = 90 * time.Second
+
+		httpClient = &http.Client{
+			Transport: transport,
+			Timeout:   30 * time.Second,
+		}
+	}
+
 	return &Client{
 		ClientId:     clientId,
 		ClientSecret: clientSecret,
@@ -64,9 +77,13 @@ func (c *Client) GetToken(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		// Properly drain the body before closing to enable connection reuse
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
-	body, err := io.ReadAll(io.Reader(resp.Body))
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -99,9 +116,13 @@ func (c *Client) GetUserId(ctx context.Context, username string) (string, error)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		// Properly drain the body before closing
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
-	body, err := io.ReadAll(io.Reader(resp.Body))
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -137,14 +158,18 @@ func (c *Client) GetUser(ctx context.Context, id string) (User, error) {
 	if err != nil {
 		return User{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		// Properly drain the body before closing
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode == http.StatusNotFound {
 		// Handle the case when the user is not found
 		return User{}, fmt.Errorf("user with ID %s not found", id)
 	}
 
-	body, err := io.ReadAll(io.Reader(resp.Body))
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return User{}, err
 	}

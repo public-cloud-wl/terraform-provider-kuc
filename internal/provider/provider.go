@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -136,9 +137,17 @@ func (p *KeycloakUserCacheProvider) Configure(ctx context.Context, req provider.
 		resp.Diagnostics.AddAttributeError(path.Root("realm"), "realm is required", "realm is required")
 	}
 
+	// Clone the default transport to enable customization while keeping defaults
+	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
+	// Configure the transport for better connection reuse
+	baseTransport.IdleConnTimeout = 90 * time.Second
+
+	// Create HTTP client with the logging transport wrapper
 	httpClient := &http.Client{
-		Transport: NewLoggingTransport(http.DefaultTransport),
+		Transport: NewLoggingTransport(baseTransport),
+		Timeout:   30 * time.Second, // Add a reasonable timeout to prevent hanging connections
 	}
+
 	tflog.Info(ctx, "Creating kuc client", map[string]any{"clientId": clientId, "clientSecret": clientSecret, "url": url, "realm": realm})
 	client := NewClient(clientId, clientSecret, url, realm, httpClient)
 	_, err := client.GetToken(ctx)
