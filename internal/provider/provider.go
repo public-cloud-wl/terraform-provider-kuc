@@ -140,7 +140,10 @@ func (p *KeycloakUserCacheProvider) Configure(ctx context.Context, req provider.
 	// Clone the default transport to enable customization while keeping defaults
 	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
 	// Configure the transport for better connection reuse
+	baseTransport.MaxIdleConns = 100
+	baseTransport.MaxIdleConnsPerHost = 10 // Critical setting for reuse!
 	baseTransport.IdleConnTimeout = 90 * time.Second
+	baseTransport.DisableKeepAlives = false // Explicitly enable
 
 	// Create HTTP client with the logging transport wrapper
 	httpClient := &http.Client{
